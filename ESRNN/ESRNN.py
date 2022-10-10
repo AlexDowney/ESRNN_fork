@@ -194,12 +194,21 @@ class ESRNN(object):
       if shuffle:
         dataloader.shuffle_dataset(random_seed=epoch)
       losses = []
+      
+      # print(f"train ESRNN : dataloader.n_batches = {dataloader.n_batches}")
+      
       for j in range(dataloader.n_batches):
         self.es_optimizer.zero_grad()
         self.rnn_optimizer.zero_grad()
 
         batch = dataloader.get_batch()
+
+        # print(f"train ESRNN : batch = {batch}")
+
         windows_y, windows_y_hat, levels = self.esrnn(batch)
+        # print(f"train ESRNN : windows_y = {windows_y}, windows_y.shape = {windows_y.shape}")
+        # print(f"train ESRNN : windows_y_hat = {windows_y_hat}, windows_y_hat.shape = {windows_y_hat.shape}")
+        # print(f"train ESRNN : levels = {levels}, levels.shape = {levels.shape}")
 
         # Pinball loss on normalized values
         loss = train_loss(windows_y, windows_y_hat, levels)
@@ -413,6 +422,9 @@ class ESRNN(object):
     self.y_hat_benchmark = y_hat_benchmark
 
     X, y = self.long_to_wide(X_df, y_df)
+    # print(f"Fit ESRNN : X = {X}, X.shape = {X.shape}")
+    # print(f"Fit ESRNN : y = {y}, y.shape = {y.shape}")
+
     assert len(X)==len(y)
     assert X.shape[1]>=3
 
@@ -420,6 +432,8 @@ class ESRNN(object):
     unique_categories = np.unique(X[:, 1])
     self.mc.category_to_idx = dict((word, index) for index, word in enumerate(unique_categories))
     exogenous_size = len(unique_categories)
+
+    # print(f"Fit ESRNN : exogenous_size = {exogenous_size}")
 
     # Create batches (device in mc)
     self.train_dataloader = Iterator(mc=self.mc, X=X, y=y)
@@ -430,6 +444,9 @@ class ESRNN(object):
 
     # Initialize model
     n_series = self.train_dataloader.n_series
+
+    # print(f"Fit ESRNN : n_series = {n_series}")
+
     self.instantiate_esrnn(exogenous_size, n_series)
 
     # Validating frequencies
@@ -520,13 +537,16 @@ class ESRNN(object):
         y_hat = torch.zeros((5,batch_size,output_size))
         for i in range(5):
           y_hat[i,:,:] = self.esrnn_ensemble[i].predict(batch)
+        # print(f"predict ESRNN : y_hat = {y_hat}")
         y_hat = torch.mean(y_hat,0)
       else:
         y_hat = self.esrnn.predict(batch)
 
       y_hat = y_hat.data.cpu().numpy()
+      # print(f"predict ESRNN : y_hat = {y_hat}")
 
       panel_y_hat[count:count+output_size*batch_size] = y_hat.flatten()
+      # print(f"predict ESRNN : panel_y_hat = {panel_y_hat}")
       count += output_size*batch_size
 
     Y_hat_panel_dict = {'unique_id': panel_unique_id,
@@ -536,6 +556,7 @@ class ESRNN(object):
     assert len(panel_ds) == len(panel_y_hat) == len(panel_unique_id)
 
     Y_hat_panel = pd.DataFrame.from_dict(Y_hat_panel_dict)
+    # print(f"predict ESRNN : Y_hat_panel = {Y_hat_panel}")
 
     if 'ds' in X_df:
       Y_hat_panel = X_df.merge(Y_hat_panel, on=['unique_id', 'ds'], how='left')
@@ -543,6 +564,7 @@ class ESRNN(object):
       Y_hat_panel = X_df.merge(Y_hat_panel, on=['unique_id'], how='left')
 
     self.train_dataloader.update_batch_size(self.mc.batch_size)
+    # print(f"predict ESRNN : Y_hat_panel = {Y_hat_panel}")
     return Y_hat_panel
 
   def long_to_wide(self, X_df, y_df):

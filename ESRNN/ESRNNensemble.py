@@ -199,6 +199,9 @@ class ESRNNensemble(object):
     self.unique_ids = X_df['unique_id'].unique()
     self.mc.n_series = len(self.unique_ids)
 
+    print(f"Fit ESRNN ensemble : n_series = {self.mc.n_series}")
+
+
     # Set seeds
     self.shuffle = shuffle
     torch.manual_seed(self.mc.random_seed)

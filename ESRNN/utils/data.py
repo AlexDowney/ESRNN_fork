@@ -10,9 +10,13 @@ class Batch():
 
     # y: time series values
     n = len(y)
+
     y = np.float32(y)
     self.idxs = torch.LongTensor(idxs).to(device)
     self.y = y
+
+    # print(f"__init__ Batch : self.y.shape (@ start) = {self.y.shape}")
+
     if (self.y.shape[1] > mc.max_series_length):
         y = y[:, -mc.max_series_length:]
     self.y = torch.tensor(y).float()
@@ -30,6 +34,8 @@ class Batch():
 
     self.y = self.y.to(device)
     self.categories = self.categories.to(device)
+
+    # print(f"__init__ Batch : self.y.shape (@ end) = {self.y.shape}")
 
 
 class Iterator(object):
@@ -72,11 +78,16 @@ class Iterator(object):
     assert len(self.unique_idxs)==len(self.X)
     self.n_series = len(self.unique_idxs)
 
+    # print(f"__init__ Iterator : n_series = {self.n_series}")
+
     #assert self.batch_size <= self.n_series 
     
     # Initialize batch iterator
     self.b = 0
     self.n_batches = int(np.ceil(self.n_series / self.batch_size))
+
+    # print(f"__init__ Iterator : n_batches = {self.n_batches}")
+
     shuffle = list(range(self.n_series))
     self.sort_key = {'unique_id': [self.unique_idxs[i] for i in shuffle],
                      'sort_key': shuffle}
@@ -105,6 +116,8 @@ class Iterator(object):
       # Compute the indexes of the minibatch.
       first = (self.b * self.batch_size)
       last = min((first + self.batch_size), self.n_series)
+
+      # print(f"get_trim_batch data : first = {first}, last = {last}")
     else:
       # Obtain unique_id index
       assert unique_id in self.sort_key['unique_id'], "unique_id, not fitted"
@@ -116,6 +129,9 @@ class Iterator(object):
     batch_idxs = self.sort_key['sort_key'][first:last]
 
     batch_y = self.y[first:last]
+
+    # print(f"get_trim_batch Iterator : batch_y = {batch_y}, batch_y.shape = {batch_y.shape}")
+
     batch_categories = self.X[first:last, 1]
     batch_last_ds = self.X[first:last, 2]
 

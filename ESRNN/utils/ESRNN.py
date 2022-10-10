@@ -148,6 +148,8 @@ class _ESM(_ES):
     levels = []
     levels += [y[:,0]/seas_prod]
 
+    # print(f"compute_levels_seasons _ESM : levels (-1) = {levels}")
+
     # Recursive seasonalities and levels
     ys = y.unbind(1)
     n_time = len(ys)
@@ -161,6 +163,7 @@ class _ESM(_ES):
 
       newlev = lev_sms * (ys[t] / seas_prod_t) + (1-lev_sms) * levels[t-1]
       levels += [newlev]
+      # print(f"compute_levels_seasons _ESM : levels ({t}) = {levels}")
 
       if len(self.seasonality)==1:
         newseason1 = seas_sms1 * (ys[t] / newlev) + (1-seas_sms1) * seasonalities1[t]
@@ -174,7 +177,9 @@ class _ESM(_ES):
                      (1-seas_sms2) * seasonalities2[t]
         seasonalities2 += [newseason2]
 
+    # print(f"compute_levels_seasons _ESM : levels = {levels}")
     levels = torch.stack(levels).transpose(1,0)
+    # print(f"compute_levels_seasons _ESM : levels (T) = {levels}")
 
     #seasonalities = torch.jit.annotate(List[Tensor], [])
     seasonalities = []
@@ -271,6 +276,10 @@ class _ESRNN(nn.Module):
   def forward(self, ts_object):
     # ES Forward
     windows_y_hat, windows_y, levels, seasonalities = self.es(ts_object)
+    # print(f"forward _ESRNN : windows_y = {windows_y}, windows_y.shape = {windows_y.shape}")
+    # print(f"forward _ESRNN : windows_y_hat = {windows_y_hat}, windows_y_hat.shape = {windows_y_hat.shape}")
+    # print(f"forward _ESRNN : levels = {levels}, levels.shape = {levels.shape}")
+
 
     # RNN Forward
     windows_y_hat = self.rnn(windows_y_hat)
